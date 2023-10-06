@@ -39,7 +39,49 @@ void Application::Display(void)
 	matrix4 m4Projection = m_pCameraMngr->GetProjectionMatrix();
 	matrix4 m4View = m_pCameraMngr->GetViewMatrix();
 
-	m_pMesh->Render(m4Projection, m4View, ToMatrix4(m_qArcBall));
+	static float moveAmount = 0;
+	moveAmount += 0.01f;
+
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(-3.0f + moveAmount, 4.0f, 0.0f)));
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(3.0f + moveAmount, 4.0f, 0.0f)));
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(-2.0f + moveAmount, 3.0f, 0.0f)));
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(2.0f + moveAmount, 3.0f, 0.0f)));
+
+	for (int i = -3; i <= 3; i++)
+	{
+		m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(i + moveAmount, 2.0f, 0.0f)));
+	}
+
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(-4.0f + moveAmount, 1.0f, 0.0f)));
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(-3.0f + moveAmount, 1.0f, 0.0f)));
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(-1.0f + moveAmount, 1.0f, 0.0f)));
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(0.0f + moveAmount, 1.0f, 0.0f)));
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(1.0f + moveAmount, 1.0f, 0.0f)));
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(3.0f + moveAmount, 1.0f, 0.0f)));
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(4.0f + moveAmount, 1.0f, 0.0f)));
+
+	for (int i = -5; i <= 5; i++)
+	{
+		m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(i + moveAmount, 0.0f, 0.0f)));
+	}
+
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(-5.0f + moveAmount, -1.0f, 0.0f)));
+
+	for (int i = -3; i <= 3; i++)
+	{
+		m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(i + moveAmount, -1.0f, 0.0f)));
+	}
+
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(5.0f + moveAmount, -1.0f, 0.0f)));
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(-5.0f + moveAmount, -2.0f, 0.0f)));
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(-3.0f + moveAmount, -2.0f, 0.0f)));
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(3.0f + moveAmount, -2.0f, 0.0f)));
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(5.0f + moveAmount, -2.0f, 0.0f)));
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(-2.0f + moveAmount,-3.0f, 0.0f)));
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(-1.0f + moveAmount, -3.0f, 0.0f)));
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(1.0f + moveAmount, -3.0f, 0.0f)));
+	m_pMesh->Render(m4Projection, m4View, glm::translate(vector3(2.0f + moveAmount, -3.0f, 0.0f)));
+
 
 	// draw a skybox
 	m_pModelMngr->AddSkyboxToRenderList();

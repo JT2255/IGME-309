@@ -61,8 +61,27 @@ void MyMesh::GenerateCone(float a_fRadius, float a_fHeight, int a_nSubdivisions,
 	Init();
 
 	// Replace this with your code
-	GenerateCube(a_fRadius * 2.0f, a_v3Color);
-	// -------------------------------
+	float startAngle = 0.0f;
+	float changeAngle = (2 * PI) / a_nSubdivisions;
+	vector3 startPoint(0.0f, 0.0f, 0.0f);
+	vector3 currentPoint(a_fRadius, 0.0f, 0.0f);
+	
+	for (int i = 0; i < a_nSubdivisions; i++)
+	{
+		startAngle += changeAngle;
+
+		//find next point
+		float firstPoint = cos(startAngle) * a_fRadius;
+		float secondPoint = sin(startAngle) * a_fRadius;
+		vector3 next(firstPoint, 0.0f, secondPoint);
+
+		//add triangles for cone
+		AddTri(startPoint, currentPoint, next);
+		AddTri(currentPoint, vector3(0.0f, a_fHeight, 0.0f), next);
+
+		//change to next point
+		currentPoint = next;
+	}
 
 	// Adding information about color
 	CompleteMesh(a_v3Color);
@@ -85,8 +104,34 @@ void MyMesh::GenerateCylinder(float a_fRadius, float a_fHeight, int a_nSubdivisi
 	Init();
 
 	// Replace this with your code
-	GenerateCube(a_fRadius * 2.0f, a_v3Color);
-	// -------------------------------
+	float startAngle = 0.0f;
+	float changeAngle = (2 * PI) / a_nSubdivisions;
+	vector3 startPoint(0.0f, 0.0f, 0.0f);
+	vector3 currentTopPoint(a_fRadius, a_fHeight, 0.0f);
+	vector3 currentBottomPoint(a_fRadius, 0.0f, 0.0f);
+	
+
+	for (int i = 0; i < a_nSubdivisions; i++)
+	{
+		startAngle += changeAngle;
+
+		//find next point
+		float firstPoint = cos(startAngle) * a_fRadius;
+		float secondPoint = sin(startAngle) * a_fRadius;
+		vector3 next(firstPoint, 0.0f, secondPoint);
+		vector3 nextTop(firstPoint, a_fHeight, secondPoint);
+
+		//add triangles for top and bottom
+		AddTri(startPoint, currentBottomPoint, next);
+		AddTri(vector3(0.0f, a_fHeight, 0.0f), nextTop, currentTopPoint);
+		
+		//connect top and bottom
+		AddQuad(next, currentBottomPoint, nextTop, currentTopPoint);
+
+		//change to next point
+		currentTopPoint = nextTop;
+		currentBottomPoint = next;
+	}
 
 	// Adding information about color
 	CompleteMesh(a_v3Color);
@@ -115,8 +160,40 @@ void MyMesh::GenerateTube(float a_fOuterRadius, float a_fInnerRadius, float a_fH
 	Init();
 
 	// Replace this with your code
-	GenerateCube(a_fOuterRadius * 2.0f, a_v3Color);
-	// -------------------------------
+	float startAngle = 0.0f;
+	float changeAngle = (2 * PI) / a_nSubdivisions;
+	vector3 insidePoint(a_fInnerRadius, 0.0f, 0.0f);
+	vector3 insideTop(a_fInnerRadius, a_fHeight, 0.0f);
+	vector3 outsidePoint(a_fOuterRadius, 0.0f, 0.0f);
+	vector3 outsideTop(a_fOuterRadius, a_fHeight, 0.0f);
+	
+
+	for (int i = 0; i < a_nSubdivisions; i++)
+	{
+		startAngle += changeAngle;
+
+		//find next point
+		float firstInside = cos(startAngle) * a_fInnerRadius;
+		float secondInside = sin(startAngle) * a_fInnerRadius;
+		float firstOutside = cos(startAngle) * a_fOuterRadius;
+		float secondOutside = sin(startAngle) * a_fOuterRadius;
+		vector3 insideNext(firstInside, 0.0f, secondInside);
+		vector3 insideNextTop(firstInside, a_fHeight, secondInside);
+		vector3 outsideNext(firstOutside, 0.0f, secondOutside);
+		vector3 outsideNextTop(firstOutside, a_fHeight, secondOutside);
+
+		//add and connect sides
+		AddQuad(insidePoint, outsidePoint, insideNext, outsideNext);
+		AddQuad(insideNextTop, outsideNextTop, insideTop, outsideTop);
+		AddQuad(outsideNext, outsidePoint, outsideNextTop, outsideTop);
+		AddQuad(insidePoint, insideNext, insideTop, insideNextTop);
+
+		//change to next point
+		insidePoint = insideNext;
+		insideTop = insideNextTop;
+		outsidePoint = outsideNext;
+		outsideTop = outsideNextTop;
+	}
 
 	// Adding information about color
 	CompleteMesh(a_v3Color);

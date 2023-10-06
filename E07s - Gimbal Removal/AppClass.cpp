@@ -44,7 +44,9 @@ void Application::Display(void)
 	/*
 	* The following line was replaced by the model manager so we can see a model instead of a cone
 	*/
+
 	//m_pMesh->Render(m4Projection, m4View, ToMatrix4(m_m4Model));
+
 	m_pModelMngr->AddModelToRenderList(m_sSteve, ToMatrix4(m_qOrientation));
 
 	m_v3Rotation = ZERO_V3;
