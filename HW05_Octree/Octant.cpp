@@ -19,32 +19,32 @@ Octant::Octant(uint a_nMaxLevel, uint a_nIdealEntityCount)
 	m_pRoot = this;
 	m_lChild.clear();
 
-	RigidBody* body = m_pEntityMngr->GetRigidBody(0);
-	float min = 0;
-	float max = 0;
+	//set base min and max points
+	vector3 min = m_pEntityMngr->GetRigidBody(0)->GetMinGlobal();
+	vector3 max = m_pEntityMngr->GetRigidBody(0)->GetMaxGlobal();
 
-	//find min and max of rigid body
+	//loop through all points and find max and min
 	for (int i = 0; i < m_pEntityMngr->GetEntityCount(); i++)
 	{
-		body = m_pEntityMngr->GetRigidBody(i);
-		vector3 minVec = body->GetMinGlobal();
-		vector3 maxVec = body->GetMaxGlobal();
+		if (m_pEntityMngr->GetRigidBody(i)->GetMinGlobal().x < min.x)
+			min.x = m_pEntityMngr->GetRigidBody(i)->GetMinGlobal().x;
 
-		if (minVec.x < min)
-			min = minVec.x;
-		if (minVec.y < min)
-			min = minVec.y;
-		if (minVec.z < min)
-			min = minVec.z;
-		if (maxVec.x > max)
-			max = maxVec.x;
-		if (maxVec.y > max)
-			max = maxVec.y;
-		if (maxVec.z > max)
-			max = maxVec.z;
+		if (m_pEntityMngr->GetRigidBody(i)->GetMinGlobal().y < min.y)
+			min.y = m_pEntityMngr->GetRigidBody(i)->GetMinGlobal().y;
+
+		if (m_pEntityMngr->GetRigidBody(i)->GetMinGlobal().z < min.z)
+			min.z = m_pEntityMngr->GetRigidBody(i)->GetMinGlobal().z;
+
+		if (m_pEntityMngr->GetRigidBody(i)->GetMaxGlobal().x > max.x)
+			max.x = m_pEntityMngr->GetRigidBody(i)->GetMaxGlobal().x;
+
+		if (m_pEntityMngr->GetRigidBody(i)->GetMaxGlobal().y > max.y)
+			max.y = m_pEntityMngr->GetRigidBody(i)->GetMaxGlobal().y;
+
+		if (m_pEntityMngr->GetRigidBody(i)->GetMaxGlobal().z > max.z)
+			max.z = m_pEntityMngr->GetRigidBody(i)->GetMaxGlobal().z;
 	}
 
-	//The following is a made-up size, you need to make sure it is measuring all the object boxes in the world
 	std::vector<vector3> lMinMax;
 	lMinMax.push_back(vector3(min));
 	lMinMax.push_back(vector3(max));
@@ -64,23 +64,18 @@ Octant::Octant(uint a_nMaxLevel, uint a_nIdealEntityCount)
 
 bool Octant::IsColliding(uint a_uRBIndex)
 {
-	//get rigid body with min and max
-	RigidBody* body = m_pEntityMngr->GetRigidBody(a_uRBIndex);
-	vector3 minVec = body->GetMinGlobal();
-	vector3 maxVec = body->GetMaxGlobal();
-
-	//check for collision
-	if (minVec.x > maxVec.x)
+	//take index and find objects rigidbody and check for collision
+	if (m_v3Min.x > m_pEntityMngr->GetEntity(a_uRBIndex)->GetRigidBody()->GetMaxGlobal().x)
 		return false;
-	if (minVec.y > maxVec.y)
+	if (m_v3Min.y > m_pEntityMngr->GetEntity(a_uRBIndex)->GetRigidBody()->GetMaxGlobal().y)
 		return false;
-	if (minVec.z > maxVec.z)
+	if (m_v3Min.z > m_pEntityMngr->GetEntity(a_uRBIndex)->GetRigidBody()->GetMaxGlobal().z)
 		return false;
-	if (maxVec.x < minVec.x)
+	if (m_v3Max.x < m_pEntityMngr->GetEntity(a_uRBIndex)->GetRigidBody()->GetMinGlobal().x)
 		return false;
-	if (maxVec.y < minVec.y)
+	if (m_v3Max.y < m_pEntityMngr->GetEntity(a_uRBIndex)->GetRigidBody()->GetMinGlobal().y)
 		return false;
-	if (maxVec.z < minVec.z)
+	if (m_v3Max.z < m_pEntityMngr->GetEntity(a_uRBIndex)->GetRigidBody()->GetMinGlobal().z)
 		return false;
 
 	return true; // for the sake of startup code
@@ -105,11 +100,16 @@ void Octant::Display(vector3 a_v3Color)
 {
 	//this is meant to be a recursive method, in starter code will only display the root
 	//even if other objects are created
-	m_pModelMngr->AddWireCubeToRenderList(glm::translate(IDENTITY_M4, m_v3Center) * glm::scale(vector3(m_fSize)), a_v3Color);
-
-	for (int i = 0; i < m_uChildren; i++)
+	if (m_uChildren == 0)
 	{
-		m_pChild[i]->Display(a_v3Color);
+		m_pModelMngr->AddWireCubeToRenderList(glm::translate(IDENTITY_M4, m_v3Center) * glm::scale(vector3(m_fSize)), a_v3Color);
+	}
+	else
+	{
+		for (int i = 0; i < m_uChildren; i++)
+		{
+			m_pChild[i]->Display(a_v3Color);
+		}
 	}
 }
 void Octant::Subdivide(void)
@@ -122,44 +122,46 @@ void Octant::Subdivide(void)
 	if (m_uChildren != 0)
 		return;
 
-	int newLevel = m_uLevel + 1;	
 	vector3 center;
+	int newLevel = m_uLevel + 1;	
+	m_uLevel++;
 
 	//subdivide and create 8 new child Octants with new centers and levels
-	center = vector3((m_v3Center.x + m_fSize / 4), (m_v3Center.y + m_fSize / 4), (m_v3Center.z + m_fSize / 4));
+	center = vector3((m_v3Center.x + (m_fSize / 4)), (m_v3Center.y + (m_fSize / 4)), (m_v3Center.z + (m_fSize / 4)));
 	m_pChild[0] = new Octant(center, (m_fSize / 2));
 	m_pChild[0]->m_uLevel = newLevel;
 
-	center = vector3((m_v3Center.x - m_fSize / 4), (m_v3Center.y + m_fSize / 4), (m_v3Center.z + m_fSize / 4));
+	center = vector3((m_v3Center.x - (m_fSize / 4)), (m_v3Center.y + (m_fSize / 4)), (m_v3Center.z + (m_fSize / 4)));
 	m_pChild[1] = new Octant(center, (m_fSize / 2));
 	m_pChild[1]->m_uLevel = newLevel;
 
-	center = vector3((m_v3Center.x + m_fSize / 4), (m_v3Center.y - m_fSize / 4), (m_v3Center.z + m_fSize / 4));
+	center = vector3((m_v3Center.x + (m_fSize / 4)), (m_v3Center.y - (m_fSize / 4)), (m_v3Center.z + (m_fSize / 4)));
 	m_pChild[2] = new Octant(center, (m_fSize / 2));
 	m_pChild[2]->m_uLevel = newLevel;
 
-	center = vector3((m_v3Center.x + m_fSize / 4), (m_v3Center.y + m_fSize / 4), (m_v3Center.z - m_fSize / 4));
+	center = vector3((m_v3Center.x + (m_fSize / 4)), (m_v3Center.y + (m_fSize / 4)), (m_v3Center.z - (m_fSize / 4)));
 	m_pChild[3] = new Octant(center, (m_fSize / 2));
 	m_pChild[3]->m_uLevel = newLevel;
 
-	center = vector3((m_v3Center.x - m_fSize / 4), (m_v3Center.y - m_fSize / 4), (m_v3Center.z + m_fSize / 4));
+	center = vector3((m_v3Center.x - (m_fSize / 4)), (m_v3Center.y - (m_fSize / 4)), (m_v3Center.z + (m_fSize / 4)));
 	m_pChild[4] = new Octant(center, (m_fSize / 2));
 	m_pChild[4]->m_uLevel = newLevel;
 
-	center = vector3((m_v3Center.x - m_fSize / 4), (m_v3Center.y + m_fSize / 4), (m_v3Center.z - m_fSize / 4));
+	center = vector3((m_v3Center.x - (m_fSize / 4)), (m_v3Center.y + (m_fSize / 4)), (m_v3Center.z - (m_fSize / 4)));
 	m_pChild[5] = new Octant(center, (m_fSize / 2));
 	m_pChild[5]->m_uLevel = newLevel;
 
-	center = vector3((m_v3Center.x + m_fSize / 4), (m_v3Center.y - m_fSize / 4), (m_v3Center.z - m_fSize / 4));
+	center = vector3((m_v3Center.x + (m_fSize / 4)), (m_v3Center.y - (m_fSize / 4)), (m_v3Center.z - (m_fSize / 4)));
 	m_pChild[6] = new Octant(center, (m_fSize / 2));
 	m_pChild[6]->m_uLevel = newLevel;
 
-	center = vector3((m_v3Center.x - m_fSize / 4), (m_v3Center.y - m_fSize / 4), (m_v3Center.z - m_fSize / 4));
+	center = vector3((m_v3Center.x - (m_fSize / 4)), (m_v3Center.y - (m_fSize / 4)), (m_v3Center.z - (m_fSize / 4)));
 	m_pChild[7] = new Octant(center, (m_fSize / 2));
 	m_pChild[7]->m_uLevel = newLevel;
 
 	m_uChildren = 8;
-
+	
+	//subdivide children
 	for (int i = 0; i < m_uChildren; i++)
 	{
 		if (m_pChild[i]->ContainsAtLeast(m_uIdealEntityCount) && m_pChild[i]->m_uLevel != m_uMaxLevel)
@@ -198,93 +200,70 @@ void Octant::AssignIDtoEntity(void)
 	{
 		for (int i = 0; i < m_pChild[0]->m_pEntityMngr->GetEntityCount(); i++)
 		{
-			if (m_pChild[0]->IsColliding(i))
+			if (m_pChild[0]->IsColliding(i) && m_pChild[0]->m_uChildren == 0)
 			{
-				if (m_pChild[0]->m_uChildren == 0)
-				{
-					m_pChild[0]->m_pEntityMngr->AddDimension(i, m_pChild[0]->m_uID);
-				}
+				m_pChild[0]->m_pEntityMngr->AddDimension(i, m_pChild[0]->m_uID);
 			}
 		}
 
 		for (int i = 0; i < m_pChild[1]->m_pEntityMngr->GetEntityCount(); i++)
 		{
-			if (m_pChild[1]->IsColliding(i))
+			if (m_pChild[1]->IsColliding(i) && m_pChild[1]->m_uChildren == 0)
 			{
-				if (m_pChild[1]->m_uChildren == 0)
-				{
-					m_pChild[1]->m_pEntityMngr->AddDimension(i, m_pChild[1]->m_uID);
-				}
+				m_pChild[1]->m_pEntityMngr->AddDimension(i, m_pChild[1]->m_uID);
 			}
 		}
 
 		for (int i = 0; i < m_pChild[2]->m_pEntityMngr->GetEntityCount(); i++)
 		{
-			if (m_pChild[2]->IsColliding(i))
+			if (m_pChild[2]->IsColliding(i) && m_pChild[2]->m_uChildren == 0)
 			{
-				if (m_pChild[2]->m_uChildren == 0)
-				{
-					m_pChild[2]->m_pEntityMngr->AddDimension(i, m_pChild[2]->m_uID);
-				}
+				m_pChild[2]->m_pEntityMngr->AddDimension(i, m_pChild[2]->m_uID);
 			}
 		}
 
 		for (int i = 0; i < m_pChild[3]->m_pEntityMngr->GetEntityCount(); i++)
 		{
-			if (m_pChild[3]->IsColliding(i))
+			if (m_pChild[3]->IsColliding(i) && m_pChild[3]->m_uChildren == 0)
 			{
-				if (m_pChild[3]->m_uChildren == 0)
-				{
-					m_pChild[3]->m_pEntityMngr->AddDimension(i, m_pChild[3]->m_uID);
-				}
+				m_pChild[3]->m_pEntityMngr->AddDimension(i, m_pChild[3]->m_uID);
 			}
 		}
 
 		for (int i = 0; i < m_pChild[4]->m_pEntityMngr->GetEntityCount(); i++)
 		{
-			if (m_pChild[4]->IsColliding(i))
+			if (m_pChild[4]->IsColliding(i) && m_pChild[4]->m_uChildren == 0)
 			{
-				if (m_pChild[4]->m_uChildren == 0)
-				{
-					m_pChild[4]->m_pEntityMngr->AddDimension(i, m_pChild[4]->m_uID);
-				}
+				m_pChild[4]->m_pEntityMngr->AddDimension(i, m_pChild[4]->m_uID);
 			}
 		}
 
 		for (int i = 0; i < m_pChild[5]->m_pEntityMngr->GetEntityCount(); i++)
 		{
-			if (m_pChild[5]->IsColliding(i))
+			if (m_pChild[5]->IsColliding(i) && m_pChild[5]->m_uChildren == 0)
 			{
-				if (m_pChild[5]->m_uChildren == 0)
-				{
-					m_pChild[5]->m_pEntityMngr->AddDimension(i, m_pChild[5]->m_uID);
-				}
+				m_pChild[5]->m_pEntityMngr->AddDimension(i, m_pChild[5]->m_uID);
 			}
 		}
 
 		for (int i = 0; i < m_pChild[6]->m_pEntityMngr->GetEntityCount(); i++)
 		{
-			if (m_pChild[6]->IsColliding(i))
+			if (m_pChild[6]->IsColliding(i) && m_pChild[6]->m_uChildren == 0)
 			{
-				if (m_pChild[6]->m_uChildren == 0)
-				{
-					m_pChild[6]->m_pEntityMngr->AddDimension(i, m_pChild[6]->m_uID);
-				}
+				m_pChild[6]->m_pEntityMngr->AddDimension(i, m_pChild[6]->m_uID);
 			}
 		}
 
 		for (int i = 0; i < m_pChild[7]->m_pEntityMngr->GetEntityCount(); i++)
 		{
-			if (m_pChild[7]->IsColliding(i))
+			if (m_pChild[7]->IsColliding(i) && m_pChild[7]->m_uChildren == 0)
 			{
-				if (m_pChild[7]->m_uChildren == 0)
-				{
-					m_pChild[7]->m_pEntityMngr->AddDimension(i, m_pChild[7]->m_uID);
-				}
+				m_pChild[7]->m_pEntityMngr->AddDimension(i, m_pChild[7]->m_uID);
 			}
 		}
 	}
 
+	//loop through children
 	for (int i = 0; i < m_uChildren; i++)
 	{
 		if (m_pChild[i]->m_uChildren != 0)
