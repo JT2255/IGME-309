@@ -6,6 +6,109 @@ uint MyRigidBody::SAT(MyRigidBody* const a_pOther)
 	//TODO: Calculate the SAT algorithm I STRONGLY suggest you use the
 	//Real Time Collision detection algorithm for OBB here but feel free to
 	//implement your own solution.
+
+
+	float r1;
+	float r2;
+	matrix3 R;
+	matrix3 absR;
+
+	//translate vector
+	vector3 translate = a_pOther->GetCenterGlobal() - this->GetCenterGlobal();
+	translate = vector3(glm::dot(vector4(translate, 0.0f), this->m_m4ToWorld[0]),
+						glm::dot(vector4(translate, 0.0f), this->m_m4ToWorld[1]),
+						glm::dot(vector4(translate, 0.0f), this->m_m4ToWorld[2]));
+
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			R[i][j] = glm::dot(this->m_m4ToWorld[i], a_pOther->m_m4ToWorld[j]);
+		}
+	}
+
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			absR[i][j] = glm::abs(R[i][j]);
+		}
+	}
+
+	//check for ax collision
+	for (int i = 0; i < 3; i++)
+	{
+		r1 = m_v3HalfWidth[i];
+		r2 = a_pOther->m_v3HalfWidth[0] * absR[i][0] + 
+			 a_pOther->m_v3HalfWidth[1] * absR[i][1] + 
+			 a_pOther->m_v3HalfWidth[2] * absR[i][2];
+
+		if (glm::abs(translate[i]) > r1 + r2)
+		{
+			return BTXs::eSATResults::SAT_AX;
+		}
+	}
+
+	//check for bx collision
+	for (int i = 0; i < 3; i++)
+	{
+		r1 = m_v3HalfWidth[0] * absR[0][i] +
+			 m_v3HalfWidth[1] * absR[1][i] +
+			 m_v3HalfWidth[2] * absR[2][i];
+		r2 = a_pOther->m_v3HalfWidth[i];
+
+		if (glm::abs(translate[i]) > r1 + r2)
+		{
+			return BTXs::eSATResults::SAT_BX;
+		}
+	}
+
+	//both x collision
+	r1 = m_v3HalfWidth[1] * absR[2][0] + m_v3HalfWidth[2] * absR[1][0];
+	r2 = a_pOther->m_v3HalfWidth[1] * absR[0][2] + a_pOther->m_v3HalfWidth[2] * absR[0][1];
+	if (glm::abs(translate[2] * R[1][0] - translate[1] * R[2][0] > r1 + r2)) return BTXs::eSATResults::SAT_AXxBX;
+
+	//1x 2y collision
+	r1 = m_v3HalfWidth[1] * absR[2][1] + m_v3HalfWidth[2] * absR[1][1];
+	r2 = a_pOther->m_v3HalfWidth[0] * absR[0][2] + a_pOther->m_v3HalfWidth[2] * absR[0][0];
+	if (glm::abs(translate[2] * R[1][1] - translate[1] * R[2][1] > r1 + r2)) return BTXs::eSATResults::SAT_AXxBY;
+
+	//1x 2z collision
+	r1 = m_v3HalfWidth[1] * absR[2][2] + m_v3HalfWidth[2] * absR[1][2];
+	r2 = a_pOther->m_v3HalfWidth[0] * absR[0][1] + a_pOther->m_v3HalfWidth[1] * absR[0][0];
+	if (glm::abs(translate[2] * R[1][2] - translate[1] * R[2][2] > r1 + r2)) return BTXs::eSATResults::SAT_AXxBZ;
+
+	//1y 2x collision
+	r1 = m_v3HalfWidth[0] * absR[2][0] + m_v3HalfWidth[2] * absR[0][0];
+	r2 = a_pOther->m_v3HalfWidth[1] * absR[1][2] + a_pOther->m_v3HalfWidth[2] * absR[1][1];
+	if (glm::abs(translate[0] * R[2][0] - translate[2] * R[0][0] > r1 + r2)) return BTXs::eSATResults::SAT_AYxBX;
+
+	//both y collision
+	r1 = m_v3HalfWidth[0] * absR[2][1] + m_v3HalfWidth[2] * absR[0][1];
+	r2 = a_pOther->m_v3HalfWidth[0] * absR[1][2] + a_pOther->m_v3HalfWidth[2] * absR[1][0];
+	if (glm::abs(translate[0] * R[2][1] - translate[2] * R[0][1] > r1 + r2)) return BTXs::eSATResults::SAT_AYxBY;
+
+	//1y 2z collision
+	r1 = m_v3HalfWidth[0] * absR[2][2] + m_v3HalfWidth[2] * absR[0][2];
+	r2 = a_pOther->m_v3HalfWidth[0] * absR[1][1] + a_pOther->m_v3HalfWidth[1] * absR[1][0];
+	if (glm::abs(translate[0] * R[2][2] - translate[2] * R[0][2] > r1 + r2)) return BTXs::eSATResults::SAT_AYxBZ;
+
+	//1z 2x collision
+	r1 = m_v3HalfWidth[0] * absR[1][0] + m_v3HalfWidth[1] * absR[0][0];
+	r2 = a_pOther->m_v3HalfWidth[1] * absR[2][2] + a_pOther->m_v3HalfWidth[2] * absR[2][1];
+	if (glm::abs(translate[1] * R[0][0] - translate[0] * R[1][0] > r1 + r2)) return BTXs::eSATResults::SAT_AZxBX;
+
+	//1z 2y collision
+	r1 = m_v3HalfWidth[0] * absR[1][1] + m_v3HalfWidth[1] * absR[0][1];
+	r2 = a_pOther->m_v3HalfWidth[0] * absR[2][2] + a_pOther->m_v3HalfWidth[2] * absR[2][0];
+	if (glm::abs(translate[1] * R[0][1] - translate[0] * R[1][1] > r1 + r2)) return BTXs::eSATResults::SAT_AZxBY;
+
+	//both z collision
+	r1 = m_v3HalfWidth[0] * absR[1][2] + m_v3HalfWidth[1] * absR[0][2];
+	r2 = a_pOther->m_v3HalfWidth[0] * absR[2][1] + a_pOther->m_v3HalfWidth[1] * absR[2][0];
+	if (glm::abs(translate[1] * R[0][2] - translate[0] * R[1][2] > r1 + r2)) return BTXs::eSATResults::SAT_AZxBZ;
+
+
 	return BTXs::eSATResults::SAT_NONE;
 }
 bool MyRigidBody::IsColliding(MyRigidBody* const a_pOther)
@@ -21,7 +124,7 @@ bool MyRigidBody::IsColliding(MyRigidBody* const a_pOther)
 	{
 		uint nResult = SAT(a_pOther);
 
-		if (bColliding) //The SAT shown they are colliding
+		if (nResult) //The SAT shown they are colliding
 		{
 			this->AddCollisionWith(a_pOther);
 			a_pOther->AddCollisionWith(this);

@@ -11,7 +11,7 @@ void Application::InitVariables(void)
 #ifdef DEBUG
 	uint uInstances = 900;
 #else
-	uint uInstances = 1849;
+	uint uInstances = 3000;
 #endif
 	int nSquare = static_cast<int>(std::sqrt(uInstances));
 	m_uObjects = nSquare * nSquare;
